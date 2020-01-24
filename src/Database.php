@@ -11,11 +11,11 @@ class Database extends \mysqli
         @parent::__construct($host, $user, $password, $database);
 
         if ($this->connect_errno) {
-            throw new Exception("Database connection error: ".  $this->connect_error);
+            throw new \Exception("Database connection error: ".  $this->connect_error);
         }
 
         if (!$this->set_charset($charset)) {
-            throw new Exception("Unnable to set database charset: ".  $this->error);
+            throw new \Exception("Unnable to set database charset: ".  $this->error);
         }
     }
 

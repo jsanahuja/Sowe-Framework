@@ -30,7 +30,7 @@ class Query
     {
         $q = $this->database->query($this->query);
         if (!$q) {
-            throw new Exception("SQL Error: ". $this->database->errno .":". $this->database->error);
+            throw new \Exception("SQL Error: ". $this->database->errno .":". $this->database->error);
         }
         $this->result = $q;
         return $this;

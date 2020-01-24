@@ -39,7 +39,7 @@ class QueryBuilder
     {
         $type = strtoupper($type);
         if (!in_array($type, static::$QUERY_TYPES)) {
-            throw new Exception("Unrecognized '". $type ."' query type");
+            throw new \Exception("Unrecognized '". $type ."' query type");
         }
 
         $this->database = $database;
@@ -72,7 +72,7 @@ class QueryBuilder
                     return $item;
                 }
                 if (strpos($item, "`")) {
-                    throw new Exception("Refused to parse field ". $item ." for security reasons");
+                    throw new \Exception("Refused to parse field ". $item ." for security reasons");
                 }
                 return "`" . $item . "`";
             },
@@ -95,14 +95,14 @@ class QueryBuilder
             case "INSERT":
             case "DELETE":
                 if (sizeof($this->tables)) {
-                    throw new Exception("Multiple table selection is not supported for this query type");
+                    throw new \Exception("Multiple table selection is not supported for this query type");
                 }
                     // no break
             case "SELECT":
                 $this->tables[] = $this->escape_table($table, $alias);
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -117,7 +117,7 @@ class QueryBuilder
                 }
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -139,11 +139,11 @@ class QueryBuilder
                         $this->set[] = $this->escape_field($field) . " = " . $this->escape_value($value);
                         break;
                     default:
-                        throw new Exception("Unsupported type of value");
+                        throw new \Exception("Unsupported type of value");
                 }
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -152,7 +152,7 @@ class QueryBuilder
     public function condition($field, $operator, $value = null)
     {
         if (!in_array($operator, self::$OPERATORS)) {
-            throw new Exception("Unrecognized operator");
+            throw new \Exception("Unrecognized operator");
         }
 
         switch ($this->query) {
@@ -186,7 +186,7 @@ class QueryBuilder
                 }
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -201,7 +201,7 @@ class QueryBuilder
                 $this->conditions[] = [];
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -215,7 +215,7 @@ class QueryBuilder
             case "DELETE":
                 foreach ($conditions as $cond) {
                     if (!is_array($cond) || empty($cond)) {
-                        throw new Exception("Wrong condition format");
+                        throw new \Exception("Wrong condition format");
                     }
                     if (!is_array($cond[0])) {
                         $cond = [$cond];
@@ -223,7 +223,7 @@ class QueryBuilder
 
                     foreach ($cond as $condition) {
                         if (gettype($condition[0]) != "string") {
-                            throw new Exception("Wrong condition format");
+                            throw new \Exception("Wrong condition format");
                         }
                         switch (sizeof($condition)) {
                             case 3:
@@ -233,14 +233,14 @@ class QueryBuilder
                                 $this->condition($condition[0], $condition[1]);
                                 break;
                             default:
-                                throw new Exception("Wrong condition format");
+                                throw new \Exception("Wrong condition format");
                         }
                     }
                     $this->or();
                 }
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -259,7 +259,7 @@ class QueryBuilder
                 }
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -288,7 +288,7 @@ class QueryBuilder
                 " ON ". $this->escape_field($field1) ." ". $operator ." ". $this->escape_field($field2);
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -297,7 +297,7 @@ class QueryBuilder
     public function order($field, $order)
     {
         if (!in_array($order, self::$ORDER_TYPES)) {
-            throw new Exception("Unrecognized order method");
+            throw new \Exception("Unrecognized order method");
         }
 
         switch ($this->query) {
@@ -305,7 +305,7 @@ class QueryBuilder
                 $this->order[] = $this->escape_field($field) . " " . $order;
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -320,7 +320,7 @@ class QueryBuilder
                 }
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -334,7 +334,7 @@ class QueryBuilder
                 $this->force = true;
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $this;
@@ -350,7 +350,7 @@ class QueryBuilder
                     if ($this->force) {
                         return "";
                     }
-                    throw new Exception("Unnable to perform an UPDATE/DELETE without conditions. Call ->force() to force it");
+                    throw new \Exception("Unnable to perform an UPDATE/DELETE without conditions. Call ->force() to force it");
                 }
                 // no break
             case "SELECT":
@@ -362,7 +362,7 @@ class QueryBuilder
                 }, $this->conditions));
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
     }
@@ -389,7 +389,7 @@ class QueryBuilder
                 break;
             case "UPDATE":
                 if (sizeof($this->set) == 0) {
-                    throw new Exception("Cannot build an update without changes");
+                    throw new \Exception("Cannot build an update without changes");
                 }
                 $q = implode(" ", array_filter([
                     "UPDATE",
@@ -402,7 +402,7 @@ class QueryBuilder
                 break;
             case "INSERT":
                 if (sizeof($this->set) == 0) {
-                    throw new Exception("Cannot build an insert without values");
+                    throw new \Exception("Cannot build an insert without values");
                 }
                 $q = implode(" ", array_filter([
                     "INSERT INTO",
@@ -420,7 +420,7 @@ class QueryBuilder
                 ]));
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return $q;
@@ -431,7 +431,7 @@ class QueryBuilder
         switch ($this->query) {
             case "SELECT":
                 if (sizeof($this->fields) == 0) {
-                    throw new Exception("Cannot build a select query without fields");
+                    throw new \Exception("Cannot build a select query without fields");
                 }
 
                 $q = implode(" ", [
@@ -448,7 +448,7 @@ class QueryBuilder
                 break;
             case "UPDATE":
                 if (sizeof($this->set) == 0) {
-                    throw new Exception("Cannot build an update without changes");
+                    throw new \Exception("Cannot build an update without changes");
                 }
                 $q = implode(" ", [
                     "UPDATE",
@@ -460,7 +460,7 @@ class QueryBuilder
                 break;
             case "INSERT":
                 if (sizeof($this->set) == 0) {
-                    throw new Exception("Cannot build an insert without values");
+                    throw new \Exception("Cannot build an insert without values");
                 }
                 $q = implode(" ", [
                     "INSERT INTO",
@@ -478,7 +478,7 @@ class QueryBuilder
                 ]);
                 break;
             default:
-                throw new Exception("This method is not supported for this query type");
+                throw new \Exception("This method is not supported for this query type");
                 break;
         }
         return new Query($this->database, $this->toSQL());
