@@ -13,7 +13,7 @@
     },
     "autoload":{
         "psr-4":{
-            "Sowe\\Framework\\": "src/Sowe/Framework/"
+            "Sowe\\Framework\\": "src/"
         }
     }
 }
