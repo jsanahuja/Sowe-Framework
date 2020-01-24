@@ -1,0 +1,19 @@
+
+{
+    "name": "sowe/framework",
+    "description": "A light and simple DB query framework in native PHP 7",
+    "authors": [
+        {
+            "name": "jsanahuja",
+            "email": "bannss1@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^7.1"
+    },
+    "autoload":{
+        "psr-4":{
+            "Sowe\\Framework\\": "src/Sowe/Framework/"
+        }
+    }
+}
