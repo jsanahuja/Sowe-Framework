@@ -21,7 +21,7 @@ class Database extends \mysqli
 
     public function __destruct()
     {
-        $this->close();
+        @$this->close();
     }
 
     public function select(string $table, string $alias = null)
