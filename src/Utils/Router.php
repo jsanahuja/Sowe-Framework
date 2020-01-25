@@ -7,9 +7,9 @@ class Router
     protected $url;
     protected $routes;
     protected $arguments;
-    protected $errorController;
+    protected $noroute;
 
-    public function __construct($base, $arguments = [])
+    public function __construct($base, ...$arguments)
     {
         $this->routes = [];
         $this->arguments = $arguments;
@@ -32,19 +32,39 @@ class Router
 
     public function else($controller)
     {
-        $this->errorController = $controller;
+        $this->noroute = $controller;
         return $this;
     }
 
     public function route()
     {
-        foreach ($this->routes as $route => $class) {
-            if ($this->url == implode("/", array_filter(explode("/", $route)))) {
-                return new $class(...$this->arguments);
+        $urlArgs = explode("/", $this->url);
+
+        foreach ($this->routes as $path => $route) {
+            $argv = [];
+            $routeArgs = array_filter(explode("/", $path));
+
+            if (sizeof($routeArgs) !== sizeof($urlArgs)) {
+                continue;
             }
+
+            for ($i = 0; $i < sizeof($urlArgs); $i++) {
+                if (!isset($routeArgs[$i])) {
+                    // not the same argument length
+                    continue 2;
+                }
+                if ($routeArgs[$i] === "%") {
+                    // wildcard
+                    $argv[] = $urlArgs[$i];
+                } elseif ($routeArgs[$i] !== $urlArgs[$i]) {
+                    // not matching
+                    continue 2;
+                }
+            }
+            return new $route(...array_merge($this->arguments, $argv));
         }
-        if (isset($this->errorController)) {
-            return new $this->errorController();
+        if (isset($this->noroute)) {
+            return new $this->noroute();
         }
         return false;
     }
