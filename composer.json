@@ -10,7 +10,8 @@
     ],
     "require": {
         "php": "^7.1",
-        "ext-mysqli": "^7.1"
+        "ext-mysqli": "^7.1",
+        "ext-mbstring": "^7.1"
     },
     "autoload":{
         "psr-4":{
