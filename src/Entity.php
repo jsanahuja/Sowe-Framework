@@ -9,9 +9,9 @@ class Entity extends AbstractEntity
     public function get($id, $fields = ["*"])
     {
         return $this->database
-            ->select($this->table)
+            ->select(static::$table)
             ->fields(...$fields)
-            ->condition($this->key, "=", $id)
+            ->condition(static::$key, "=", $id)
             ->run()
             ->fetchOne();
     }
@@ -19,35 +19,35 @@ class Entity extends AbstractEntity
     public function list($fields = ["*"], $filters = null)
     {
         $qb = $this->database
-            ->select($this->table)
+            ->select(static::$table)
             ->fields(...$fields);
 
         if ($filters !== null) {
             $qb->conditions($filters);
         }
         
-        return $qb->order($this->key, "DESC")
+        return $qb->order(static::$key, "DESC")
             ->run()
-            ->formattedFetchAll($this->table, $this->key);
+            ->formattedFetchAll(static::$table, static::$key);
     }
 
     public function update($id, $data)
     {
         $qb = $this->database
-            ->update($this->table);
+            ->update(static::$table);
         
         foreach ($data as $key => $value) {
             $qb->set($key, $value);
         }
         
-        return $qb->condition($this->key, "=", $id)
+        return $qb->condition(static::$key, "=", $id)
             ->run()->num_rows();
     }
 
     public function create($data)
     {
         $qb = $this->database
-            ->insert($this->table);
+            ->insert(static::$table);
         
         foreach ($data as $key => $value) {
             $qb->set($key, $value);
@@ -60,8 +60,8 @@ class Entity extends AbstractEntity
     public function delete($id)
     {
         return $this->database
-            ->delete($this->table)
-            ->condition($this->key, "=", $id)
+            ->delete(static::$table)
+            ->condition(static::$key, "=", $id)
             ->run()->num_rows();
     }
 }
