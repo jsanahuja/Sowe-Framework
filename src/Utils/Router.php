@@ -43,7 +43,7 @@ class Router
                 return new $class(...$this->arguments);
             }
         }
-        if(isset($this->errorController)){
+        if (isset($this->errorController)) {
             return new $this->errorController();
         }
         return false;

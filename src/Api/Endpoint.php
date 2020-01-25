@@ -8,9 +8,10 @@ class Endpoint extends Request
 {
     protected $database;
 
-    public function __construct()
+    public function __construct(Database $database)
     {
         parent::__construct();
+        $this->database = $database;
         parent::handle();
     }
 
