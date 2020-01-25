@@ -18,6 +18,9 @@ abstract class AbstractEntity
 
     public function get($id, $fields = ["*"])
     {
+        if (is_string($fields)) {
+            $fields = [$fields];
+        }
         return $this->database
             ->select(static::$table)
             ->fields(...$fields)
@@ -28,6 +31,9 @@ abstract class AbstractEntity
     
     public function list($fields = ["*"], $filters = null)
     {
+        if (is_string($fields)) {
+            $fields = [$fields];
+        }
         $qb = $this->database
             ->select(static::$table)
             ->fields(...$fields);
