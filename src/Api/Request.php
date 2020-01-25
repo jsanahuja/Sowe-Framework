@@ -57,17 +57,19 @@ abstract class Request
             
         foreach ($accept as $mime) {
             switch ($mime) {
+                case "text/html":
+                    $this->responseFormat = "html";
+                    break 2;
                 case "application/json":
                 case "*/*":
                     $this->responseFormat = "json";
-                    return;
+                    break 2;
                 default:
-                    break;
+                    $this->responseFormat = "json";
+                    $this->throw_error("No supported Accept MIME found: ". implode(", ", $accept));
+                    break 2;
             }
         }
-
-        $this->responseFormat = "json";
-        $this->throw_error("No supported Accept MIME found: ". implode(", ", $accept));
     }
 
 
@@ -127,18 +129,13 @@ abstract class Request
         if (!method_exists($this, $this->method)) {
             $this->throw_error("Invalid HTTP Method");
         }
-        
-        $this->validate_variables();
-        
+                
         if (!isset($this->error) || $this->error !== true) {
             call_user_func(array($this, $this->method));
         }
 
         $this->answer();
     }
-
-    /** Validations **/
-    abstract protected function validate_variables();
 
     protected function static_validation(&$variable, $type)
     {
@@ -152,7 +149,7 @@ abstract class Request
             case "int":
                 if (is_numeric($variable)) {
                     $variable = intval($variable);
-                    return is_float($variable);
+                    return is_int($variable);
                 }
                 // no break
             case "bool":
@@ -173,6 +170,8 @@ abstract class Request
                 return is_bool($variable);
             case "string":
                 return is_string($variable);
+            case "email":
+                return filter_var($variable, FILTER_VALIDATE_EMAIL);
             case "array":
                 return is_array($variable);
             case "function":
@@ -192,7 +191,7 @@ abstract class Request
         if (isset($this->variables[$name]) && $validation !== null) {
             if (is_string($validation)) {
                 if (!$this->static_validation($this->variables[$name], $validation)) {
-                    $this->throw_error("'" . $name . "' must be '"+ $validation +"'");
+                    $this->throw_error("The variable '" . $name . "' must be a valid '". $validation ."'");
                 }
             } elseif (is_callable($validation)) {
                 if (!$validation($this->variables[$name])) {
@@ -211,25 +210,32 @@ abstract class Request
     /** Response **/
     protected function answer()
     {
+        $response = "";
         switch ($this->responseFormat) {
             case "json":
-                $json = json_encode($this->response);
+                $response = json_encode($this->response);
                 header("Content-type: application/json");
-                header("Cache-Control: no-cache, must-revalidate");
-                header("Content-Length: ". strlen($json));
-                print $json;
+                break;
+            case "html":
+                $response = "<pre>". json_encode($this->response, JSON_PRETTY_PRINT) . "</pre>";
+                header("Content-type: text/html");
                 break;
             default:
                 break;
         }
+        
+        header("Cache-Control: no-cache, must-revalidate");
+        header("Content-Length: ". strlen($response));
+        print $response;
         exit;
     }
 
-    protected function throw_error($msg)
+    protected function throw_error($msg, $code = 400)
     {
         $this->response = [
             "status" => false,
-            "msg" => $msg
+            "msg" => $msg,
+            "code" => $code
         ];
         $this->answer();
     }

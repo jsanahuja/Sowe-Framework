@@ -44,7 +44,7 @@ abstract class AbstractEntity
         
         return $qb->order(static::$key, "DESC")
             ->run()
-            ->formattedFetchAll(static::$table, static::$key);
+            ->fetchAll(static::$table, static::$key);
     }
 
     public function update($id, $data)

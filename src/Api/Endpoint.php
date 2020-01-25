@@ -17,8 +17,4 @@ class Endpoint extends Request
         $this->argv = $argv;
         parent::handle();
     }
-
-    protected function validate_variables()
-    {
-    }
 }

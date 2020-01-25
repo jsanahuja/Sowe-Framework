@@ -2,7 +2,7 @@
 {
     "name": "sowe/framework",
     "description": "A light and simple DB query framework in native PHP 7",
-    "version": "1.0.13",
+    "version": "1.1.0",
     "authors": [
         {
             "name": "jsanahuja",

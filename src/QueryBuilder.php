@@ -149,7 +149,7 @@ class QueryBuilder
         return $this;
     }
 
-    public function condition($field, $operator, $value = null)
+    public function condition($field, $operator, $value)
     {
         if (!in_array($operator, self::$OPERATORS)) {
             throw new \Exception("Unrecognized operator");
@@ -161,9 +161,6 @@ class QueryBuilder
             case "DELETE":
                 $index = sizeof($this->conditions) - 1;
                 switch (gettype($value)) {
-                    case "NULL":
-                        $this->conditions[$index][] = $this->escape_field($field) . " " . $operator;
-                        break;
                     case "boolean":
                         $value = $value ? 1 : 0;
                         $this->conditions[$index][] = $this->escape_field($field) . " " . $operator . " b" . $this->escape_value($value);
@@ -207,34 +204,88 @@ class QueryBuilder
         return $this;
     }
 
-    public function conditions(...$conditions)
+    public function conditions($conditions)
     {
         switch ($this->query) {
             case "SELECT":
             case "UPDATE":
             case "DELETE":
-                foreach ($conditions as $cond) {
-                    if (!is_array($cond) || empty($cond)) {
-                        throw new \Exception("Wrong condition format");
-                    }
-                    if (!is_array($cond[0])) {
-                        $cond = [$cond];
+                if (!is_array($conditions)) {
+                    throw new \Exception("Wrong condition format: [". print_r($condition, true) . "]");
+                }
+
+                // Single condition format [cond, op, val]
+                if (is_string($conditions[0])) {
+                    return $this->condition(...$conditions);
+                }
+
+                // Format check. Conditions? Groups of conditions? Mixed?
+                $groupsFound = false;
+                $conditionsFound = false;
+                foreach ($conditions as $element) {
+                    // Here we must have at least an array of arrays
+                    if (!is_array($element)) {
+                        throw new \Exception("Wrong condition format: [". print_r($element, true) . "]");
                     }
 
-                    foreach ($cond as $condition) {
-                        if (gettype($condition[0]) != "string") {
-                            throw new \Exception("Wrong condition format");
+                    // Condition or a group of conditions?
+                    if (is_string($element[0])) {
+                        $conditionsFound = true;
+                    } elseif (is_array($element[0])) {
+                        $groupsFound = true;
+                    } else {
+                        throw new \Exception("Wrong condition format: [". print_r($condition, true) . "]");
+                    }
+                }
+
+                // Format parsing.
+                if ($conditionsFound && $groupsFound) {
+                    // Format mixed to [[[cond, op, val]]]
+                    foreach ($conditions as &$element) {
+                        if (is_string($element[0])) {
+                            $element = [$element];
                         }
-                        switch (sizeof($condition)) {
-                            case 3:
-                                $this->condition($condition[0], $condition[1], $condition[2]);
-                                break;
-                            case 2:
-                                $this->condition($condition[0], $condition[1]);
-                                break;
-                            default:
-                                throw new \Exception("Wrong condition format");
+                    }
+                } elseif ($conditionsFound) {
+                    // Format [[cond, op, val]] to [[[cond, op, val]]]
+                    $conditions = [$conditions];
+                }
+
+                /**
+                 * Format [[[cond, op, val]]] where:
+                 * [
+                 *   [ <- OR group of clauses
+                 *      [condition, operator, value], <- AND clauses
+                 *      [condition, operator, value]
+                 *   ],
+                 *   [ <- OR group of clauses
+                 *      [condition, operator, value]
+                 *   ]
+                 * ]
+                 *
+                 * So:
+                 * [
+                 *   [
+                 *     ["name", "=", "John Doe"],
+                 *     ["age",  "=", 25]
+                 *   ],
+                 *   [
+                 *     ["name", "=", "John Doe"],
+                 *     ["age",  "=", 40]
+                 *   ]
+                 * ]
+                 * Would be
+                 * WHERE (
+                 *   (name = 'John Doe' AND age = 25) OR
+                 *   (name = 'John Doe' AND age = 40) OR
+                 * )
+                 */
+                foreach ($conditions as $conditionsGroup) {
+                    foreach ($conditionsGroup as $condition) {
+                        if (sizeof($condition) != 3) {
+                            throw new \Exception("Wrong condition format: [". print_r($condition, true) . "]");
                         }
+                        $this->condition(...$condition);
                     }
                     $this->or();
                 }
