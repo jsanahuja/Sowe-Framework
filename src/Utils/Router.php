@@ -6,11 +6,13 @@ class Router
 {
     protected $url;
     protected $routes;
+    protected $arguments;
     protected $errorController;
 
-    public function __construct($base)
+    public function __construct($base, $arguments = [])
     {
         $this->routes = [];
+        $this->arguments = $arguments;
         $this->parse_url($_SERVER['REQUEST_URI'], $base);
     }
 
@@ -38,9 +40,12 @@ class Router
     {
         foreach ($this->routes as $route => $class) {
             if ($this->url == implode("/", array_filter(explode("/", $route)))) {
-                return new $class();
+                return new $class(...$this->arguments);
             }
         }
-        return new $this->errorController();
+        if(isset($this->errorController)){
+            return new $this->errorController();
+        }
+        return false;
     }
 }
