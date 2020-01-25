@@ -9,6 +9,9 @@ abstract class Request
     protected $ip;
     protected $method;
 
+    protected $requestFormat;
+    protected $responseFormat;
+
     protected function __construct()
     {
         $this->variables = [];
@@ -16,52 +19,77 @@ abstract class Request
         $this->ip = $this->get_ip();
 
         $this->get_http_method();
+
+        $this->get_accept();
+        $this->get_content_type();
+
         $this->collect_variables();
     }
 
     /** Content-Type **/
     private function get_content_type()
     {
-        $_SERVER['CONTENT_TYPE'] = $_SERVER['CONTENT_TYPE'] ?? "";
+        $headers = apache_request_headers();
+        $content_type = $headers['Content-Type'] ?? "application/json";
         
-        $type = "";
-        switch (explode(",", $_SERVER['CONTENT_TYPE'])[0]) {
+        switch ($content_type) {
             case "application/json":
-                $type = "json";
+                $this->requestFormat = "json";
                 break;
-            case "application/x-www-form-urlencoded":
-            case "multipart/form-data":
             default:
-                $this->throw_error("Invalid Content-Type");
-                break;
+                $this->throw_error("Unsupported Content-Type '". $content_type . "'");
         }
-        return $type;
     }
+
+    /** Accept */
+    private function get_accept()
+    {
+        $headers = apache_request_headers();
+        $accept = $headers['Accept'] ?? "application/json";
+
+        $accept = call_user_func_array('array_merge', array_map(function ($items) {
+            $items = explode(",", $items);
+            // Filtering invalid mimes
+            return array_filter($items, function ($item) {
+                return strpos($item, "/") > 0;
+            });
+        }, explode(";", $accept)));
+            
+        foreach ($accept as $mime) {
+            switch ($mime) {
+                case "application/json":
+                case "*/*":
+                    $this->responseFormat = "json";
+                    return;
+                default:
+                    break;
+            }
+        }
+
+        $this->responseFormat = "json";
+        $this->throw_error("No supported Accept MIME found: ". implode(", ", $accept));
+    }
+
 
     /** Collect variables **/
     private function collect_variables()
     {
-        switch ($this->get_content_type()) {
+        switch ($this->responseFormat) {
             case "json":
-                $this->collect_json_variables();
+                $json = file_get_contents('php://input');
+        
+                if (!empty($json)) {
+                    $variables = @json_decode($json, true);
+                    
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        $this->throw_error("Invalid JSON format");
+                    }
+        
+                    $this->variables = array_merge($this->variables, $variables);
+                }
                 break;
             default:
                 break;
-        }
-    }
-
-    private function collect_json_variables()
-    {
-        $json = file_get_contents('php://input');
-
-        if (!empty($json)) {
-            $variables = @json_decode($json, true);
-            
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->throw_error("Invalid JSON format");
-            }
-
-            $this->variables = array_merge($this->variables, $variables);
         }
     }
 
@@ -183,11 +211,17 @@ abstract class Request
     /** Response **/
     protected function answer()
     {
-        $json = json_encode($this->response);
-        header("Content-type: application/json");
-        header("Cache-Control: no-cache, must-revalidate");
-        header("Content-Length: ". strlen($json));
-        print $json;
+        switch ($this->responseFormat) {
+            case "json":
+                $json = json_encode($this->response);
+                header("Content-type: application/json");
+                header("Cache-Control: no-cache, must-revalidate");
+                header("Content-Length: ". strlen($json));
+                print $json;
+                break;
+            default:
+                break;
+        }
         exit;
     }
 
