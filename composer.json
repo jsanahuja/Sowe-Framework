@@ -1,4 +1,3 @@
-
 {
     "name": "sowe/framework",
     "description": "A light and simple DB query framework in native PHP 7",
@@ -12,7 +11,8 @@
     "require": {
         "php": "^7.1",
         "ext-mysqli": "^7.1",
-        "ext-mbstring": "^7.1"
+        "ext-mbstring": "^7.1",
+        "phpmailer/phpmailer": "^6.1"
     },
     "autoload":{
         "psr-4":{
