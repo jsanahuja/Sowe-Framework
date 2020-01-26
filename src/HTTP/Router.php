@@ -1,6 +1,6 @@
 <?php
 
-namespace Sowe\Framework\Utils;
+namespace Sowe\Framework\HTTP;
 
 class Router
 {
