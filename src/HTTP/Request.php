@@ -6,7 +6,8 @@ abstract class Request
 {
     protected $variables;
     protected $ip;
-
+    
+    protected $headers;
     protected $method;
     protected $responseFormats;
 
@@ -14,6 +15,7 @@ abstract class Request
     public function __construct()
     {
         $this->variables = [];
+        $this->responseFormats = [];
 
         $this->get_ip();
         $this->parse_request();
@@ -44,10 +46,10 @@ abstract class Request
             $this->throw_error("Unsupported HTTP Method");
         }
         
-        $headers = apache_request_headers();
+        $this->headers = apache_request_headers();
 
         // Parsing variables
-        $content_type = isset($headers['Content-Type']) ? explode(";", $headers['Content-Type'])[0] : "";
+        $content_type = isset($this->headers['Content-Type']) ? explode(";", $this->headers['Content-Type'])[0] : "";
         switch ($content_type) {
             case "application/x-www-form-urlencoded":
                 $this->variables = array_merge($this->variables, $_POST);
@@ -74,16 +76,14 @@ abstract class Request
         $this->variables = array_merge($this->variables, $_GET);
 
         // Parsing expected response formats
-        if (isset($headers['Accept'])) {
+        if (isset($this->headers['Accept'])) {
             $this->responseFormats = call_user_func_array('array_merge', array_map(function ($items) {
                 $items = explode(",", $items);
                 // Filtering invalid mimes
                 return array_filter($items, function ($item) {
                     return strpos($item, "/") > 0;
                 });
-            }, explode(";", $headers['Accept'])));
-        } else {
-            $this->responseFormats = [];
+            }, explode(";", $this->headers['Accept'])));
         }
     }
 

@@ -2,6 +2,8 @@
 
 namespace Sowe\Framework\HTTP\Request;
 
+use Sowe\Framework\HTTP\Request;
+
 abstract class JSONEndpoint extends Request
 {
     protected $response;

@@ -2,6 +2,8 @@
 
 namespace Sowe\Framework\HTTP\Request;
 
+use Sowe\Framework\HTTP\Request;
+
 abstract class HTMLEndpoint extends Request
 {
     protected $file;
@@ -19,7 +21,10 @@ abstract class HTMLEndpoint extends Request
         preg_match_all($format, $content, $matches);
 
         foreach ($matches[1] as &$match) {
-            $match = $variables[strtolower($match)] ?? "";
+            if(!isset($variables[strtolower($match)])){
+                throw new \Exception("Undefined '". strtolower($match) ."' replace");
+            }
+            $match = $variables[strtolower($match)];
         }
 
         return str_replace($matches[0], $matches[1], $content);
@@ -28,10 +33,10 @@ abstract class HTMLEndpoint extends Request
     public function answer()
     {
         if (!file_exists($this->file)) {
-            throw new \Exception("Game client file not found");
+            throw new \Exception("File '". $this->file ."' not found");
         }
 
-        $response = $this->parse_file(file_get_contents($file), $this->replaces);
+        $response = $this->parse_file(file_get_contents($this->file), $this->replaces);
 
         header("Content-type: text/html");
         header("Content-Length: ". strlen($response));
