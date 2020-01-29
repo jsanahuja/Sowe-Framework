@@ -397,20 +397,18 @@ class QueryBuilder
         switch ($this->query) {
             case "DELETE":
             case "UPDATE":
-                if (sizeof($this->conditions) == 0) {
-                    if ($this->force) {
-                        return "";
-                    }
-                    throw new \Exception("Unnable to perform an UPDATE/DELETE without conditions. Call ->force() to force it");
-                }
-                // no break
             case "SELECT":
-                if (sizeof($this->conditions) == 0) {
-                    return "";
-                }
-                return "WHERE ". implode(" OR ", array_map(function ($group) {
+                $result = implode(" OR ", array_map(function ($group) {
                     return implode(" AND ", $group);
                 }, $this->conditions));
+                if($result === ""){
+                    if ($this->force) {
+                        return "";
+                    }else{
+                        throw new \Exception("For security reasons we will not to perform this query without conditions unless you force it. If you are sure, call ->force() to force it");
+                    }
+                }
+                return "WHERE ". $result;
                 break;
             default:
                 throw new \Exception("This method is not supported for this query type");
@@ -418,7 +416,7 @@ class QueryBuilder
         }
     }
 
-    public function toSQL()
+    protected function sql()
     {
         switch ($this->query) {
             case "SELECT":
@@ -479,60 +477,7 @@ class QueryBuilder
 
     public function build()
     {
-        switch ($this->query) {
-            case "SELECT":
-                if (sizeof($this->fields) == 0) {
-                    throw new \Exception("Cannot build a select query without fields");
-                }
-
-                $q = implode(" ", [
-                    "SELECT",
-                    implode(",", $this->fields),
-                    "FROM",
-                    implode(",", $this->tables),
-                    implode(" ", $this->joins),
-                    $this->buildConditions(),
-                    sizeof($this->group) ? "GROUP BY ". implode(", ", $this->group) : "",
-                    sizeof($this->order) ? "ORDER BY ". implode(", ", $this->order) : "",
-                    $this->limit !== false ? $this->limit : ""
-                ]);
-                break;
-            case "UPDATE":
-                if (sizeof($this->set) == 0) {
-                    throw new \Exception("Cannot build an update without changes");
-                }
-                $q = implode(" ", [
-                    "UPDATE",
-                    implode("", $this->tables),
-                    "SET",
-                    implode(", ", $this->set),
-                    $this->buildConditions()
-                ]);
-                break;
-            case "INSERT":
-                if (sizeof($this->set) == 0) {
-                    throw new \Exception("Cannot build an insert without values");
-                }
-                $q = implode(" ", [
-                    "INSERT INTO",
-                    implode("", $this->tables),
-                    "SET",
-                    implode(", ", $this->set)
-                ]);
-                break;
-            case "DELETE":
-                $q = implode(" ", [
-                    "DELETE FROM",
-                    implode(",", $this->tables),
-                    $this->buildConditions(),
-                    $this->limit !== false ? $this->limit : ""
-                ]);
-                break;
-            default:
-                throw new \Exception("This method is not supported for this query type");
-                break;
-        }
-        return new Query($this->database, $this->toSQL());
+        return new Query($this->database, $this->sql());
     }
 
     public function run()
