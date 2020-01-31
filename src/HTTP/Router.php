@@ -64,7 +64,7 @@ class Router
             return new $route(...array_merge($this->arguments, $argv));
         }
         if (isset($this->noroute)) {
-            return new $this->noroute($this->url);
+            return new $this->noroute(...array_merge($this->arguments, [$this->url]));
         }
         return false;
     }

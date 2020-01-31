@@ -8,6 +8,7 @@ abstract class Request
     protected $ip;
     
     protected $headers;
+    protected $body;
     protected $method;
     protected $responseFormats;
 
@@ -43,13 +44,18 @@ abstract class Request
         $this->method = strtolower($_SERVER['REQUEST_METHOD']);
         
         if (!method_exists($this, $this->method)) {
-            $this->throw_error("Unsupported HTTP Method");
+            $this->throw_error("405");
         }
         
-        $this->headers = apache_request_headers();
+        $this->headers = array_change_key_case(apache_request_headers(), CASE_LOWER);
 
         // Parsing variables
-        $content_type = isset($this->headers['Content-Type']) ? explode(";", $this->headers['Content-Type'])[0] : "";
+        $content_type = isset($this->headers['content-type']) ? explode(";", $this->headers['content-type'])[0] : "";
+        
+        // Get variables have the lowest priority
+        $this->variables = array_merge($this->variables, $_GET);
+
+        $this->body = file_get_contents('php://input');
         switch ($content_type) {
             case "application/x-www-form-urlencoded":
                 $this->variables = array_merge($this->variables, $_POST);
@@ -59,37 +65,35 @@ abstract class Request
                 $this->variables = array_merge($this->variables, $_FILES);
                 break;
             case "application/json":
-                $json = file_get_contents('php://input');
-                if (!empty($json)) {
-                    $variables = @json_decode($json, true);
+                if (!empty($this->body)) {
+                    $data = @json_decode($this->body, true);
                     
                     if (json_last_error() !== JSON_ERROR_NONE) {
-                        $this->throw_error("Invalid JSON format");
+                        $this->throw_error("400");
                     }
         
-                    $this->variables = array_merge($this->variables, $variables);
+                    $this->variables = array_merge($this->variables, $data);
                 }
                 break;
             default:
                 break;
         }
-        $this->variables = array_merge($this->variables, $_GET);
 
         // Parsing expected response formats
-        if (isset($this->headers['Accept'])) {
+        if (isset($this->headers['accept'])) {
             $this->responseFormats = call_user_func_array('array_merge', array_map(function ($items) {
                 $items = explode(",", $items);
                 // Filtering invalid mimes
                 return array_filter($items, function ($item) {
                     return strpos($item, "/") > 0;
                 });
-            }, explode(";", $this->headers['Accept'])));
+            }, explode(";", $this->headers['accept'])));
         }
     }
 
     abstract protected function answer();
 
-    abstract protected function throw_error($msg);
+    abstract protected function throw_error($code, $arguments=[]);
 
     protected function handle()
     {
@@ -97,74 +101,4 @@ abstract class Request
         $this->answer();
     }
 
-    /** Validations */
-    protected function static_validation(&$variable, $type)
-    {
-        switch ($type) {
-            case "float":
-                if (is_numeric($variable)) {
-                    $variable = floatval($variable);
-                    return is_float($variable);
-                }
-                // no break
-            case "int":
-                if (is_numeric($variable)) {
-                    $variable = intval($variable);
-                    return is_int($variable);
-                }
-                // no break
-            case "bool":
-                switch ($variable) {
-                    case true:
-                    case "true":
-                    case "1":
-                        $variable = true;
-                        break;
-                    case false:
-                    case "false":
-                    case "0":
-                        $variable = false;
-                        break;
-                    default:
-                        break;
-                }
-                return is_bool($variable);
-            case "string":
-                return is_string($variable);
-            case "email":
-                return filter_var($variable, FILTER_VALIDATE_EMAIL);
-            case "array":
-                return is_array($variable);
-            case "function":
-            case "callable":
-                return is_callable($variable);
-            default:
-                throw new \Exception("Unknown validation '". $validation ."'");
-        }
-    }
-    
-    protected function validate_variable($name, $required = true, $validation = null, $default = null)
-    {
-        if ($required && !isset($this->variables[$name])) {
-            throw new \Exception("Missing required ". $name ." variable");
-        }
-
-        if (isset($this->variables[$name]) && $validation !== null) {
-            if (is_string($validation)) {
-                if (!$this->static_validation($this->variables[$name], $validation)) {
-                    $this->throw_error("The variable '" . $name . "' must be a valid '". $validation ."'");
-                }
-            } elseif (is_callable($validation)) {
-                if (!$validation($this->variables[$name])) {
-                    $this->throw_error("Incorrect '" . $name . "' format or type");
-                }
-            } elseif ($validation !== null) {
-                throw new \Exception("Unexpected validation for '". $name ."' variable");
-            }
-        }
-
-        if ($default !== null && !isset($this->variables[$name])) {
-            $this->variables[$name] = $default;
-        }
-    }
 }

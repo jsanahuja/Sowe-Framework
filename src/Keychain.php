@@ -1,6 +1,6 @@
 <?php
 
-namespace Sowe\Framework\Utils;
+namespace Sowe\Framework;
 
 class Keychain
 {
@@ -41,9 +41,14 @@ class Keychain
         if (empty(self::$PK)) {
             if (defined("KEYCHAIN_PK") && !empty(KEYCHAIN_PK)) {
                 self::$PK = KEYCHAIN_PK;
-            } else {
-                throw new \Exception("Undefined private key. Define it using Keychain::set_pk or defining the constant KEYCHAIN_PK");
+                try{
+                    self::decode(self::$PK);
+                    return true;
+                }catch(\Exception $e){
+                    throw new \Exception("Invalid private key. Generate it with: sodium_bin2hex(random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES))");
+                }
             }
+            throw new \Exception("Undefined private key. Define it using Keychain::set_pk or defining the constant KEYCHAIN_PK. Generate it with: sodium_bin2hex(random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES))");
         }
     }
 
@@ -66,12 +71,16 @@ class Keychain
     {
         self::pk_validation();
 
-        $bytes = self::decode($hash);
-        return self::unpack(sodium_crypto_secretbox_open(
-            mb_substr($bytes, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES, null, '8bit'),
-            mb_substr($bytes, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES, '8bit'),
-            self::decode(self::$PK)
-        ));
+        try{
+            $bytes = self::decode($hash);
+            return self::unpack(sodium_crypto_secretbox_open(
+                mb_substr($bytes, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES, null, '8bit'),
+                mb_substr($bytes, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES, '8bit'),
+                self::decode(self::$PK)
+            ));
+        }catch(\Exception $e){
+            return [];
+        }
     }
 
     /**
@@ -110,6 +119,10 @@ class Keychain
     public static function hash_verify($hash, $password)
     {
         self::pk_validation();
-        return sodium_crypto_auth_verify(self::decode($hash), $password, self::decode(self::$PK));
+        try{
+            return sodium_crypto_auth_verify(self::decode($hash), $password, self::decode(self::$PK));
+        }catch(\Exception $e){
+            return false;
+        }
     }
 }

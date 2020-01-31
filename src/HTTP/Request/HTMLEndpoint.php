@@ -13,7 +13,6 @@ abstract class HTMLEndpoint extends Request
     {
         parent::__construct();
         $this->replaces = [];
-        parent::handle();
     }
 
     protected function parse_file($content, $variables, $format = "/%%%([^\ ]+)%%%/")
@@ -44,11 +43,11 @@ abstract class HTMLEndpoint extends Request
         exit;
     }
 
-    public function throw_error($msg)
-    {
+    protected function throw_error($code, $arguments=[]){
+        http_response_code($code);
         /**
-         * This will have to be handled by our Router
-         * or the child class.
+         * This will have to be handled by our child
+         * or the Router class.
          */
         throw new \Exception($msg);
     }

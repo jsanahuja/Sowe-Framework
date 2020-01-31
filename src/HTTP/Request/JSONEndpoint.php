@@ -11,8 +11,7 @@ abstract class JSONEndpoint extends Request
     public function __construct()
     {
         parent::__construct();
-        $this->response = ["status" => true];
-        parent::handle();
+        $this->response = [];
     }
 
     public function answer()
@@ -31,12 +30,9 @@ abstract class JSONEndpoint extends Request
         exit;
     }
 
-    public function throw_error($msg)
-    {
-        $this->response = [
-            "status" => false,
-            "message" => $msg
-        ];
+    protected function throw_error($code, $arguments=[]){
+        http_response_code($code);
+        $this->response = array_merge($this->response, $arguments);
         $this->answer();
     }
 }
