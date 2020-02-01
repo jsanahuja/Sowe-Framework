@@ -42,7 +42,7 @@ $resources->load(10)
   ->save();
 ```
 
-- [**Sowe\Framework\QueryBuilder**](https://github.com/jsanahuja/Sowe-Framework/blob/1.3.1/src/QueryBuilder.php) used by both `AbstractEntity` and `AbstractObject`. Provides a friendly database query builder interface
+- [**Sowe\Framework\QueryBuilder**](https://github.com/jsanahuja/Sowe-Framework/blob/master/src/QueryBuilder.php) used by both `AbstractEntity` and `AbstractObject`. Provides a friendly database query builder interface
    * `__construct($type, Database $database)` where $type can be SELECT|UPDATE|INSERT|DELETE
    * `table(string $table, string $alias = null)`
    * `fields(...$fields)`
@@ -67,4 +67,28 @@ $data = $qb->table("users")
    ->condition("username", "=", "jdoe")
    ->run() //returns Query object
    ->fetchAll() // this is from Query object.
+```
+
+- [**Sowe\Framework\Mailer**](https://github.com/jsanahuja/Sowe-Framework/blob/master/src/Mailer.php) an interface to send mails using PHPMailer
+   * `__construct($hostname, $username, $password, $sender, $sendername, $auth = true, $security = PHPMailer::ENCRYPTION_STARTTLS)`
+   * `new()`
+   * `to($address, $name = '')`
+   * `cc($address)`
+   * `bcc($address)`
+   * `subject($subject)`
+   * `body($body)`
+   * `htmlbody($body)`
+   * `altbody($body)`
+   * `attachment($path, $name = '', $encoding = 'base64', $type = '', $disposition = 'attachment')`
+   * `debug()` enables `SMTPDebug`
+   * `send()`
+Example
+```php
+$mailer = new Mailer($host, $user, $pass, $sender, $sendername);
+$mailer->new()
+  ->to("bannss1@gmail.com", "Javier")
+  ->cc("admin@sowecms.com")
+  ->subject("Test Sowe/Framework/Mailer")
+  ->body("This is a test message sent with Sowe/Framework/Mailer")
+  ->send();
 ```
