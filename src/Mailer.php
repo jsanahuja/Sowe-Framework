@@ -117,7 +117,7 @@ class Mailer
     public function attachment(
         $path,
         $name = '',
-        $encoding = self::ENCODING_BASE64,
+        $encoding = 'base64',
         $type = '',
         $disposition = 'attachment'
     ) {
