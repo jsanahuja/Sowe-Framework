@@ -20,8 +20,8 @@ class Query
     private function parse_params($params)
     {
         if (sizeof($params)) {
-            foreach ($params as $param) {
-                $this->query = str_replace($param[0], "'". $database->real_escape_string($param[1]) ."'", $this->query);
+            foreach ($params as $key => $value) {
+                $this->query = str_replace($key, "'". $this->database->real_escape_string($value) ."'", $this->query);
             }
         }
     }
