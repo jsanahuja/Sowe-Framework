@@ -22,10 +22,6 @@ abstract class Request
         $this->parse_request();
     }
     
-    public function __destruct(){
-        $this->answer();
-    }
-    
     /** Get Origin IP */
     private function get_ip()
     {
