@@ -11,8 +11,8 @@ abstract class HTMLEndpoint extends Request
 
     public function __construct()
     {
-        parent::__construct();
         $this->replaces = [];
+        parent::__construct();
     }
 
     protected function parse_file($content, $variables, $format = "/%%%([^\ ]+)%%%/")
@@ -38,7 +38,6 @@ abstract class HTMLEndpoint extends Request
         $response = $this->parse_file(file_get_contents($this->file), $this->replaces);
 
         header("Content-type: text/html");
-        header("Content-Length: ". strlen($response));
         echo $response;
         exit;
     }

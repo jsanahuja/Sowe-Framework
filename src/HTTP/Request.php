@@ -60,7 +60,7 @@ abstract class Request
             case "application/x-www-form-urlencoded":
                 $this->variables = array_merge($this->variables, $_POST);
                 break;
-            case "multipart\/form-data":
+            case "multipart/form-data":
                 $this->variables = array_merge($this->variables, $_POST);
                 $this->variables = array_merge($this->variables, $_FILES);
                 break;

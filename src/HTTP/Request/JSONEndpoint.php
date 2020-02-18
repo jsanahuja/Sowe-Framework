@@ -10,13 +10,16 @@ abstract class JSONEndpoint extends Request
 
     public function __construct()
     {
-        parent::__construct();
         $this->response = [];
+        parent::__construct();
     }
 
     public function answer()
     {
-        if (in_array("text/html", $this->responseFormats)) {
+        if(empty($this->response)){
+            $response = "{}";
+            header("Content-type: application/json");
+        }else if (in_array("text/html", $this->responseFormats)) {
             $response = "<pre>". json_encode($this->response, JSON_PRETTY_PRINT) . "</pre>";
             header("Content-type: text/html");
         } else {
@@ -25,7 +28,6 @@ abstract class JSONEndpoint extends Request
         }
         
         header("Cache-Control: no-cache, must-revalidate");
-        header("Content-Length: ". strlen($response));
         echo $response;
         exit;
     }

@@ -72,7 +72,7 @@ class QueryBuilder
                     return $item;
                 }
                 if (strpos($item, "`")) {
-                    throw new \Exception("Refused to parse field ". $item ." for security reasons");
+                    throw new \Exception("Refused to parse field '". $item ."' for security reasons");
                 }
                 return "`" . $item . "`";
             },
@@ -113,7 +113,11 @@ class QueryBuilder
         switch ($this->query) {
             case "SELECT":
                 foreach ($fields as $field) {
-                    $this->fields[] = $this->escape_field($field);
+                    if(preg_match("/([a-zA-Z\-\_]+)\(([^)]+)\)/", $field, $matches)){
+                        $this->fields[] = $matches[1] . "(" . $this->escape_field($matches[2]) . ")";
+                    }else{
+                        $this->fields[] = $this->escape_field($field);
+                    }
                 }
                 break;
             default:

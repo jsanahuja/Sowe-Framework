@@ -42,7 +42,7 @@ class Router
 
         foreach ($this->routes as $path => $route) {
             $argv = [];
-            $routeArgs = array_filter(explode("/", $path));
+            $routeArgs = array_values(array_filter(explode("/", $path)));
 
             if (sizeof($routeArgs) !== sizeof($urlArgs)) {
                 continue;
