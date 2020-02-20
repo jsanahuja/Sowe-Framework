@@ -13,21 +13,25 @@ abstract class AbstractObject extends AbstractEntity
     protected $data;
     protected $toSave;
     
-    public function __construct(Database $database){
-        parent::__construct($database);
-        $this->toSave = [];
-    }
-
     public function new()
     {
         $this->identifier = null;
         $this->data = [];
+        $this->toSave = [];
+        return $this;
+    }
+
+    public function lazyload($id){
+        $this->identifier = $id;
+        $this->data = [];
+        $this->toSave = [];
         return $this;
     }
 
     public function load($id)
     {
         $this->data = $this->get($id);
+        $this->toSave = [];
         if (is_null($this->data)) {
             throw new \Exception("No object found");
         }
@@ -79,9 +83,6 @@ abstract class AbstractObject extends AbstractEntity
 
     public function setData($field, $value)
     {
-        if ($field === static::$key) {
-            throw new \Exception("Cannot set object identifier");
-        }
         if(!isset($this->data[$field]) || $this->data[$field] != $value){
             $this->data[$field] = $value;
             $this->toSave[$field] = $value;
@@ -90,6 +91,14 @@ abstract class AbstractObject extends AbstractEntity
     }
 
     public function getId(){
+        if(isset($this->data[static::$key])){
+            return $this->data[static::$key];
+        }
         return $this->identifier;
+    }
+
+    public function setId($id){
+        $this->setData(static::$key, $id);
+        return $this;
     }
 }
