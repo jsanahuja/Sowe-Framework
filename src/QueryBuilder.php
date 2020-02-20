@@ -82,6 +82,9 @@ class QueryBuilder
 
     private function escape_value($value)
     {
+        if(is_numeric($value)){
+            return $value;
+        }
         return "'" . $this->database->real_escape_string($value) . "'";
     }
 
@@ -113,7 +116,11 @@ class QueryBuilder
         switch ($this->query) {
             case "SELECT":
                 foreach ($fields as $field) {
-                    if(preg_match("/([a-zA-Z\-\_]+)\(([^)]+)\)/", $field, $matches)){
+                    if(preg_match("/([a-zA-Z\-\_]+)\(([^)]+)\) as ([a-zA-Z\-\_]+)/", $field, $matches)){
+                        $this->fields[] = $matches[1] . "(" . $this->escape_field($matches[2]) . ") as " . $this->escape_field($matches[3]);
+                    }else if(preg_match("/([a-zA-Z\-\_]+) as ([a-zA-Z\-\_]+)/", $field, $matches)){
+                        $this->fields[] = $this->escape_field($matches[1]) . " as " . $this->escape_field($matches[2]);
+                    }else if(preg_match("/([a-zA-Z\-\_]+)\(([^)]+)\)/", $field, $matches)){
                         $this->fields[] = $matches[1] . "(" . $this->escape_field($matches[2]) . ")";
                     }else{
                         $this->fields[] = $this->escape_field($field);
@@ -138,6 +145,14 @@ class QueryBuilder
                         $this->set[] = $this->escape_field($field) . " = b" . $this->escape_value($value);
                         break;
                     case "string":
+                        if(preg_match("/([a-zA-Z\-\_]+)\(([^)]+)\)/", $value, $matches)){
+                            if(is_numeric($matches[2])){
+                                $this->set[] = $this->escape_field($field) . " = " . $matches[1] . "(" . $matches[2] . ")";
+                            }else{
+                                $this->set[] = $this->escape_field($field) . " = " . $matches[1] . "(" . $this->escape_field($matches[2]) . ")";
+                            }
+                            break;
+                        }
                     case "integer":
                     case "double":
                         $this->set[] = $this->escape_field($field) . " = " . $this->escape_value($value);
