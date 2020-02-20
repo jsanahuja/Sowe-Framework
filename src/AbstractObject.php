@@ -11,7 +11,13 @@ abstract class AbstractObject extends AbstractEntity
 
     protected $identifier;
     protected $data;
+    protected $toSave;
     
+    public function __construct(Database $database){
+        parent::__construct($database);
+        $this->toSave = [];
+    }
+
     public function new()
     {
         $this->identifier = null;
@@ -21,8 +27,11 @@ abstract class AbstractObject extends AbstractEntity
 
     public function load($id)
     {
-        $this->identifier = $id;
         $this->data = $this->get($id);
+        if (is_null($this->data)) {
+            throw new \Exception("No object found");
+        }
+        $this->identifier = $id;
         unset($this->data[static::$key]);
         return $this;
     }
@@ -34,8 +43,13 @@ abstract class AbstractObject extends AbstractEntity
         }
         if (is_null($this->identifier)) {
             $this->identifier = $this->create($this->data);
-        } else {
-            $this->update($this->identifier, $this->data);
+            if(!$this->identifier){
+                throw new \Exception("Unable to insert object");
+            }
+        } else if(!empty($this->toSave)){
+            if(!$this->update($this->identifier, $this->toSave)){
+                throw new \Exception("Unable to update object");
+            }
         }
         return $this;
     }
@@ -68,7 +82,14 @@ abstract class AbstractObject extends AbstractEntity
         if ($field === static::$key) {
             throw new \Exception("Cannot set object identifier");
         }
-        $this->data[$field] = $value;
+        if(!isset($this->data[$field]) || $this->data[$field] != $value){
+            $this->data[$field] = $value;
+            $this->toSave[$field] = $value;
+        }
         return $this;
+    }
+
+    public function getId(){
+        return $this->identifier;
     }
 }
