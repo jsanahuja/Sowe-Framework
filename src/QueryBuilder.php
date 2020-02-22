@@ -142,7 +142,7 @@ class QueryBuilder
                 switch (gettype($value)) {
                     case "boolean":
                         $value = $value ? 1 : 0;
-                        $this->set[] = $this->escape_field($field) . " = b" . $this->escape_value($value);
+                        $this->set[] = $this->escape_field($field) . " = b'" . $value . "'";
                         break;
                     case "string":
                         if(preg_match("/([a-zA-Z\-\_]+)\(([^)]+)\)/", $value, $matches)){
@@ -182,7 +182,7 @@ class QueryBuilder
                 switch (gettype($value)) {
                     case "boolean":
                         $value = $value ? 1 : 0;
-                        $this->conditions[$index][] = $this->escape_field($field) . " " . $operator . " b" . $this->escape_value($value);
+                        $this->conditions[$index][] = $this->escape_field($field) . " " . $operator . " b'". $value ."'";
                         break;
                     case "array":
                         $value = "(". implode(", ", array_map(

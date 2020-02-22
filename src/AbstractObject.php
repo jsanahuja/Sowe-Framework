@@ -51,9 +51,7 @@ abstract class AbstractObject extends AbstractEntity
                 throw new \Exception("Unable to insert object");
             }
         } else if(!empty($this->toSave)){
-            if(!$this->update($this->identifier, $this->toSave)){
-                throw new \Exception("Unable to update object");
-            }
+            $this->update($this->identifier, $this->toSave);
         }
         return $this;
     }
