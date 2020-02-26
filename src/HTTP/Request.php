@@ -42,7 +42,12 @@ abstract class Request
     private function parse_request()
     {
         $this->method = strtolower($_SERVER['REQUEST_METHOD']);
-        
+
+        if($this->method === "options"){
+            $this->options();
+            return;
+        }
+
         if (!method_exists($this, $this->method)) {
             $this->throw_error("405");
         }
@@ -89,6 +94,20 @@ abstract class Request
                 });
             }, explode(";", $this->headers['accept'])));
         }
+    }
+
+    protected function options(){
+        $allowed = ["OPTIONS"];
+
+        foreach(["get", "head", "post", "put", "delete", "connect", "trace", "patch"] as $method){
+            if (method_exists($this, $method)) {
+                $allowed[] = strtoupper($method);
+            }
+        }
+
+        http_response_code(204);
+        header("Allow: ". implode(", ", $allowed));
+        exit;
     }
 
     abstract protected function answer();
