@@ -58,7 +58,7 @@ abstract class AbstractObject extends AbstractEntity
 
     public function remove()
     {
-        if (!is_null($this->identifier)) {
+        if (is_null($this->identifier)) {
             throw new \Exception("Triying to delete non-created object");
         }
         $this->delete($this->identifier);
