@@ -20,8 +20,8 @@ class Query
     private function parse_params($params)
     {
         if (sizeof($params)) {
-            foreach ($params as $param) {
-                $this->query = str_replace($param[0], "'". $database->real_escape_string($param[1]) ."'", $this->query);
+            foreach ($params as $key => $value) {
+                $this->query = str_replace($key, "'". $this->database->real_escape_string($value) ."'", $this->query);
             }
         }
     }
@@ -30,7 +30,7 @@ class Query
     {
         $q = $this->database->query($this->query);
         if (!$q) {
-            throw new \Exception("SQL Error: ". $this->database->errno .":". $this->database->error);
+            throw new \Exception("SQL Error: ". $this->database->errno .":". $this->database->error . " (Query: ". $this->query .")");
         }
         $this->result = $q;
         return $this;
