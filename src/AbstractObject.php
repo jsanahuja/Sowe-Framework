@@ -2,7 +2,6 @@
 
 namespace Sowe\Framework;
 
-use Sowe\Framework\Database;
 use Sowe\Framework\AbstractEntity;
 
 abstract class AbstractObject extends AbstractEntity
