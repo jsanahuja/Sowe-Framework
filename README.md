@@ -57,8 +57,8 @@ $resources->load(10)
    * `join($type, $table, $alias, $field1, $operator, $field2)`
    * `order($field, $order)`
    * `group(...$fields)`
-   * `build()` returns the [**Query**](https://github.com/jsanahuja/Sowe-Framework/blob/1.3.1/src/Query.php) object
-   * `run()` returns the [**Query**](https://github.com/jsanahuja/Sowe-Framework/blob/1.3.1/src/Query.php) object after running the
+   * `build()` returns the [**Query**](https://github.com/jsanahuja/Sowe-Framework/blob/master/src/Query.php) object
+   * `run()` returns the [**Query**](https://github.com/jsanahuja/Sowe-Framework/blob/master/src/Query.php) object after running the
 Example
 ```php
 $qb = new QueryBuilder("SELECT", $database);
@@ -91,4 +91,30 @@ $mailer->new()
   ->subject("Test Sowe/Framework/Mailer")
   ->body("This is a test message sent with Sowe/Framework/Mailer")
   ->send();
+```
+
+- [**Sowe\Framework\Logger**](https://github.com/jsanahuja/Sowe-Framework/blob/master/src/Logger.php) extends Monolog\Logger to prepend file and line where the log was originated.
+
+Example
+```php
+use Sowe\Framework\Logger;
+use Monolog\ErrorHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Formatter\LineFormatter;
+
+$logpath = __DIR__ . "/logs/log.log";
+$logger = new Logger("");
+$formatter = new LineFormatter(
+    "[%datetime%]:%level_name%: %message% %context%\n",
+    "Y-m-d\TH:i:s",
+    true, /* allow break lines */
+    true /* ignore empty contexts */
+);
+$stream = new StreamHandler($logpath, Logger::DEBUG);
+$stream->setFormatter($formatter);
+$logger->pushHandler($stream);
+$handler = new ErrorHandler($logger);
+$handler->registerErrorHandler([], false);
+$handler->registerExceptionHandler();
+$handler->registerFatalHandler();
 ```
