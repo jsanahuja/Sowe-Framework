@@ -61,6 +61,12 @@ abstract class Request
         $this->variables = array_merge($this->variables, $_GET);
 
         $this->body = file_get_contents('php://input');
+
+        // Getting put data
+        if($this->method === "put"){
+            parse_str($this->body, $_POST);
+        }
+
         switch ($content_type) {
             case "application/x-www-form-urlencoded":
                 $this->variables = array_merge($this->variables, $_POST);

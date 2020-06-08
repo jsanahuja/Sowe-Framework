@@ -27,6 +27,25 @@ abstract class AbstractEntity
             ->condition(static::$key, "=", $id)
             ->run()
             ->fetchOne();
+    }    
+    
+    public function getByFilter($filters, $fields = ["*"], $order_field = null, $order = "DESC")
+    {
+        if (is_string($fields)) {
+            $fields = [$fields];
+        }
+        $qb = $this->database
+            ->select(static::$table)
+            ->fields(...$fields)
+            ->conditions($filters);
+        if(!is_null($order_field)){
+            $qb->order($order_field, $order);
+        }else{
+            $qb->order(static::$key, $order);
+        }
+        $qb->limit(1)
+            ->run()
+            ->fetchOne();
     }
     
     public function list($fields = ["*"], $filters = null)

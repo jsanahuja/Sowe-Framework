@@ -233,6 +233,11 @@ class QueryBuilder
                     throw new \Exception("Wrong condition format: [". print_r($condition, true) . "]");
                 }
 
+                // No conditions
+                if(sizeof($conditions) == 0){
+                    return $this;
+                }
+
                 // Single condition format [cond, op, val]
                 if (is_string($conditions[0])) {
                     return $this->condition(...$conditions);
