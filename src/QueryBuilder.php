@@ -45,15 +45,16 @@ class QueryBuilder
         $this->database = $database;
         $this->query = $type;
 
-        $this->tables       = [];
-        $this->fields       = [];
-        $this->set          = [];
-        $this->conditions   = [[]];
-        $this->joins        = [];
-        $this->order        = [];
-        $this->group        = [];
-        $this->limit        = false;
-        $this->force        = false;
+        $this->tables           = [];
+        $this->fields           = [];
+        $this->set              = [];
+        $this->conditions       = [[]];
+        $this->joins            = [];
+        $this->joinConditions   = [];
+        $this->order            = [];
+        $this->group            = [];
+        $this->limit            = false;
+        $this->force            = false;
     }
 
     /**
@@ -86,6 +87,128 @@ class QueryBuilder
             return $value;
         }
         return "'" . $this->database->real_escape_string($value) . "'";
+    }
+    
+    private function escape_condition($field, $operator, $value){
+        if (!in_array($operator, self::$OPERATORS)) {
+            throw new \Exception("Unrecognized operator");
+        }
+
+        switch(gettype($value)){
+            case "boolean":
+                $value = $value ? 1 : 0;
+                return $this->escape_field($field) . " " . $operator . " b'". $value ."'";
+            break;
+            case "array":
+                $value = "(". implode(", ", array_map(
+                    array($this, "escape_value"),
+                    $value
+                )) . ")";
+                return $this->escape_field($field) . " " . $operator . " " . $value;
+            break;
+            case "string":
+                if ($value === "NULL") {
+                    return $this->escape_field($field) . " " . $operator . " NULL";
+                    break;
+                }
+                // No break, going to default
+            default:
+                return $this->escape_field($field) . " " . $operator . " " . $this->escape_value($value);
+        }
+    }
+
+    private function format_conditions($conditions){
+        /**
+         * Target format [[[cond, op, val]]] where:
+         * [
+         *   [ <- OR group of clauses
+         *      [condition, operator, value], <- AND clauses
+         *      [condition, operator, value]
+         *   ],
+         *   [ <- OR group of clauses
+         *      [condition, operator, value]
+         *   ]
+         * ]
+         *
+         * So:
+         * [
+         *   [
+         *     ["name", "=", "John Doe"],
+         *     ["age",  "=", 25]
+         *   ],
+         *   [
+         *     ["name", "=", "John Doe"],
+         *     ["age",  "=", 40]
+         *   ]
+         * ]
+         * Would be
+         * WHERE (
+         *   (name = 'John Doe' AND age = 25) OR
+         *   (name = 'John Doe' AND age = 40) OR
+         * )
+         */
+        if (!is_array($conditions)) {
+            throw new \Exception("Wrong condition format: [". print_r($conditions, true) . "]");
+        }
+
+        // No conditions
+        if(sizeof($conditions) == 0){
+            return false;
+        }
+
+        // Single condition format [cond, op, val] => [[[cond, op, val]]]
+        if (is_string($conditions[0])) {
+            if(sizeof($conditions) != 3){
+                throw new \Exception("Wrong condition format: [". print_r($conditions, true) . "]");
+            }
+            return [[$conditions]];
+        }
+
+        // Format check. Conditions? Groups of conditions? Mixed?
+        $groupsFound = false;
+        $conditionsFound = false;
+        foreach ($conditions as $element) {
+            // Here we must have at least an array of arrays
+            if (!is_array($element)) {
+                throw new \Exception("Wrong condition format: [". print_r($element, true) . "]");
+            }
+
+            // Condition or a group of conditions?
+            if (is_string($element[0])) {
+                // Means there is at least one condition
+                $conditionsFound = true;
+            } elseif (is_array($element[0])) {
+                // Means there is at least one group.
+                $groupsFound = true;
+            } else {
+                throw new \Exception("Wrong condition format: [". print_r($element, true) . "]");
+            }
+        }
+
+        // Format parsing.
+        if ($conditionsFound && $groupsFound) {
+            // Format mixed to [[[cond, op, val]]]
+            foreach ($conditions as &$element) {
+                if (is_string($element[0])) {
+                    if(sizeof($element) != 3){
+                        throw new \Exception("Wrong condition format: [". print_r($element, true) . "]");
+                    }
+                    $element = [$element];
+                } else if(is_array($element[0])){
+                    foreach($element as $elementCondition){
+                        if(sizeof($elementCondition) != 3){
+                            throw new \Exception("Wrong condition format: [". print_r($elementCondition, true) . "]");
+                        }
+                    }
+                }else{
+                    throw new \Exception("Wrong condition format: [". print_r($element, true) . "]");
+                }
+            }
+        } elseif ($conditionsFound) {
+            // Format [[cond, op, val]] to [[[cond, op, val]]]
+            $conditions = [$conditions];
+        }
+        return $conditions;
     }
 
     /**
@@ -170,36 +293,31 @@ class QueryBuilder
 
     public function condition($field, $operator, $value)
     {
-        if (!in_array($operator, self::$OPERATORS)) {
-            throw new \Exception("Unrecognized operator");
-        }
-
         switch ($this->query) {
             case "SELECT":
             case "UPDATE":
             case "DELETE":
                 $index = sizeof($this->conditions) - 1;
-                switch (gettype($value)) {
-                    case "boolean":
-                        $value = $value ? 1 : 0;
-                        $this->conditions[$index][] = $this->escape_field($field) . " " . $operator . " b'". $value ."'";
-                        break;
-                    case "array":
-                        $value = "(". implode(", ", array_map(
-                            array($this, "escape_value"),
-                            $value
-                        )) . ")";
-                        $this->conditions[$index][] = $this->escape_field($field) . " " . $operator . " " . $value;
-                        break;
-                    case "string":
-                        if ($value === "NULL") {
-                            $this->conditions[$index][] = $this->escape_field($field) . " " . $operator . " NULL";
-                            break;
-                        }
-                        // no break
-                    default:
-                        $this->conditions[$index][] = $this->escape_field($field) . " " . $operator . " " . $this->escape_value($value);
+                $this->conditions[$index][] = $this->escape_condition($field, $operator, $value);
+                break;
+            default:
+                throw new \Exception("This method is not supported for this query type");
+                break;
+        }
+        return $this;
+    }
+
+    public function joinCondition($field, $operator, $value){
+        switch ($this->query) {
+            case "SELECT":
+            case "UPDATE":
+            case "DELETE":
+                $joinIndex = sizeof($this->joinConditions) - 1;
+                if($joinIndex < 0){
+                    throw new \Exception("Cannot define join conditions before defining a join");
                 }
+                $index = sizeof($this->joinConditions[$joinIndex]) - 1;
+                $this->joinConditions[$joinIndex][$index][] = $this->escape_condition($field, $operator, $value);
                 break;
             default:
                 throw new \Exception("This method is not supported for this query type");
@@ -223,95 +341,66 @@ class QueryBuilder
         return $this;
     }
 
+    public function orInJoin(){
+        switch ($this->query) {
+            case "SELECT":
+            case "UPDATE":
+            case "DELETE":
+                $joinIndex = sizeof($this->joinConditions) - 1;
+                if($joinIndex < 0){
+                    throw new \Exception("Cannot use orInJoin before defining a join");
+                }
+                $index = sizeof($this->joinConditions[$joinIndex]) - 1;
+                if(sizeof($this->joinConditions[$joinIndex][$index]) == 0){
+                    throw new \Exception("Cannot use orInJoin before adding at least one condition in the current block");
+                }
+
+                $this->joinConditions[$joinIndex][] = [];
+                break;
+            default:
+                throw new \Exception("This method is not supported for this query type");
+                break;
+        }
+        return $this;
+    }
+
     public function conditions($conditions)
     {
         switch ($this->query) {
             case "SELECT":
             case "UPDATE":
             case "DELETE":
-                if (!is_array($conditions)) {
-                    throw new \Exception("Wrong condition format: [". print_r($condition, true) . "]");
-                }
+                $conditions = $this->format_conditions($conditions);
 
-                // No conditions
-                if(sizeof($conditions) == 0){
-                    return $this;
-                }
-
-                // Single condition format [cond, op, val]
-                if (is_string($conditions[0])) {
-                    return $this->condition(...$conditions);
-                }
-
-                // Format check. Conditions? Groups of conditions? Mixed?
-                $groupsFound = false;
-                $conditionsFound = false;
-                foreach ($conditions as $element) {
-                    // Here we must have at least an array of arrays
-                    if (!is_array($element)) {
-                        throw new \Exception("Wrong condition format: [". print_r($element, true) . "]");
-                    }
-
-                    // Condition or a group of conditions?
-                    if (is_string($element[0])) {
-                        $conditionsFound = true;
-                    } elseif (is_array($element[0])) {
-                        $groupsFound = true;
-                    } else {
-                        throw new \Exception("Wrong condition format: [". print_r($condition, true) . "]");
-                    }
-                }
-
-                // Format parsing.
-                if ($conditionsFound && $groupsFound) {
-                    // Format mixed to [[[cond, op, val]]]
-                    foreach ($conditions as &$element) {
-                        if (is_string($element[0])) {
-                            $element = [$element];
+                if($conditions !== false){
+                    foreach ($conditions as $conditionsGroup) {
+                        foreach ($conditionsGroup as $condition) {
+                            $this->condition(...$condition);
                         }
+                        $this->or();
                     }
-                } elseif ($conditionsFound) {
-                    // Format [[cond, op, val]] to [[[cond, op, val]]]
-                    $conditions = [$conditions];
                 }
+                break;
+            default:
+                throw new \Exception("This method is not supported for this query type");
+                break;
+        }
+        return $this;
+    }
 
-                /**
-                 * Format [[[cond, op, val]]] where:
-                 * [
-                 *   [ <- OR group of clauses
-                 *      [condition, operator, value], <- AND clauses
-                 *      [condition, operator, value]
-                 *   ],
-                 *   [ <- OR group of clauses
-                 *      [condition, operator, value]
-                 *   ]
-                 * ]
-                 *
-                 * So:
-                 * [
-                 *   [
-                 *     ["name", "=", "John Doe"],
-                 *     ["age",  "=", 25]
-                 *   ],
-                 *   [
-                 *     ["name", "=", "John Doe"],
-                 *     ["age",  "=", 40]
-                 *   ]
-                 * ]
-                 * Would be
-                 * WHERE (
-                 *   (name = 'John Doe' AND age = 25) OR
-                 *   (name = 'John Doe' AND age = 40) OR
-                 * )
-                 */
+    public function joinConditions($conditions)
+    {
+        switch ($this->query) {
+            case "SELECT":
+            case "UPDATE":
+            case "DELETE":
+                $conditions = $this->format_conditions($conditions);
+
                 foreach ($conditions as $conditionsGroup) {
                     foreach ($conditionsGroup as $condition) {
-                        if (sizeof($condition) != 3) {
-                            throw new \Exception("Wrong condition format: [". print_r($condition, true) . "]");
-                        }
-                        $this->condition(...$condition);
+                        $this->joinCondition(...$condition);
                     }
-                    $this->or();
+                    $this->orInJoin();
                 }
                 break;
             default:
@@ -361,6 +450,7 @@ class QueryBuilder
             case "SELECT":
                 $this->joins[] = strtoupper($type) . " JOIN " . $this->escape_table($table, $alias).
                 " ON ". $this->escape_field($field1) ." ". $operator ." ". $this->escape_field($field2);
+                $this->joinConditions[] = [[]];
                 break;
             default:
                 throw new \Exception("This method is not supported for this query type");
