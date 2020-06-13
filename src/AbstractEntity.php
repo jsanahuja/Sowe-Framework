@@ -7,6 +7,14 @@ use Sowe\Framework\Database;
 abstract class AbstractEntity
 {
     protected $database;
+
+    public static function getTable(){
+        return static::$table;
+    }
+
+    public static function getKey(){
+        return static::$key;
+    }
     
     public function __construct(Database $database)
     {
@@ -43,11 +51,26 @@ abstract class AbstractEntity
         }else{
             $qb->order(static::$key, $order);
         }
-        $qb->limit(1)
+        return $qb->limit(1)
             ->run()
             ->fetchOne();
     }
     
+    public function count($filters = null, $field = null){
+        if(is_null($field)){
+            $field = static::$key;
+        }
+        $qb = $this->database->select(static::$table)
+            ->fields("count(" . $field . ") as result");
+        
+        if (!is_null($filters)) {
+            $qb->conditions($filters);
+        }
+
+        return $qb->run()
+            ->fetchOne()["result"];
+    }
+
     public function list($fields = ["*"], $filters = null)
     {
         if (is_string($fields)) {
@@ -57,7 +80,7 @@ abstract class AbstractEntity
             ->select(static::$table)
             ->fields(...$fields);
 
-        if ($filters !== null) {
+        if (!is_null($filters)) {
             $qb->conditions($filters);
         }
         
