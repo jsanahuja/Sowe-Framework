@@ -100,6 +100,42 @@ class Query
         return $data;
     }
 
+    public function formattedJoinFetchAll($main_table, $joinkey, $primarykey){
+        // Getting fields and mapping each to tables
+        $f = $this->result->fetch_fields();
+        $main_fields = [];
+        $join_fields = [];
+        foreach($f as $field){
+            if($field->orgtable == $main_table){
+                $main_fields[] = $field->name;
+            }else{
+                $join_fields[] = $field->name;
+            }
+        }
+
+        // Setting values
+        $data = [];
+        foreach ($this->fetchAll() as $entity) {
+            $pk = $entity[$primarykey];
+            $jk = $entity[$joinkey];
+
+            if(!isset($data[$pk])){
+                $data[$pk] = [];
+            }
+            $data[$pk][$jk] = [];
+
+            foreach($entity as $field => $value){
+                if(in_array($field, $main_fields)){
+                    $data[$pk][$field] = $value;
+                }else if($field != $joinkey){
+                    $data[$pk][$jk][$field] = $value;
+                }
+            }
+        }
+        
+        return $data;
+    }
+
     public function formattedFetchOne($main_table, $key)
     {
         $result = $this->formattedFetchAll($main_table, $key);
