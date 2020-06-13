@@ -532,6 +532,22 @@ class QueryBuilder
         }
     }
 
+    public function buildJoins(){
+        $result = "";
+        foreach($this->joins as $index => $join){
+            $result .= " " . $join;
+            
+            if(isset($this->joinConditions[$index])){
+                $result .= " AND ((";
+                $result .= implode(") OR (", array_map(function($group){
+                        return implode(" AND ", $group);
+                    }, $this->joinConditions[$index]));
+                $result .= "))";
+            }
+        }
+        return $result;
+    }
+
     public function toSQL()
     {
         switch ($this->query) {
@@ -545,7 +561,7 @@ class QueryBuilder
                     implode(",", $this->fields),
                     "FROM",
                     implode(",", $this->tables),
-                    implode(" ", $this->joins),
+                    $this->buildJoins(),
                     $this->buildConditions(),
                     sizeof($this->order) ? "ORDER BY ". implode(", ", $this->order) : "",
                     sizeof($this->group) ? "GROUP BY ". implode(", ", $this->group) : "",
@@ -604,7 +620,7 @@ class QueryBuilder
                     implode(",", $this->fields),
                     "FROM",
                     implode(",", $this->tables),
-                    implode(" ", $this->joins),
+                    $this->buildJoins(),
                     $this->buildConditions(),
                     sizeof($this->group) ? "GROUP BY ". implode(", ", $this->group) : "",
                     sizeof($this->order) ? "ORDER BY ". implode(", ", $this->order) : "",
