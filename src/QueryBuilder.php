@@ -537,12 +537,14 @@ class QueryBuilder
         foreach($this->joins as $index => $join){
             $result .= " " . $join;
             
-            if(isset($this->joinConditions[$index])){
-                $result .= " AND ((";
-                $result .= implode(") OR (", array_map(function($group){
-                        return implode(" AND ", $group);
-                    }, $this->joinConditions[$index]));
-                $result .= "))";
+            if(isset($this->joinConditions[$index]) && sizeof($this->joinConditions[$index][0])){
+                $conditions = implode(") OR (", array_map(function($group){
+                    return implode(" AND ", $group);
+                }, $this->joinConditions[$index]));
+
+                if(strlen($conditions)){
+                    $result .= " AND ((" . $conditions . "))"; 
+                }
             }
         }
         return $result;
@@ -583,14 +585,19 @@ class QueryBuilder
                 break;
             case "INSERT":
                 if (sizeof($this->set) == 0) {
-                    throw new \Exception("Cannot build an insert without values");
+                    $q = implode(" ", [
+                        "INSERT INTO",
+                        implode("", $this->tables),
+                        "VALUES ()"
+                    ]);
+                }else{
+                    $q = implode(" ", array_filter([
+                        "INSERT INTO",
+                        implode("", $this->tables),
+                        "SET",
+                        implode(", ", $this->set)
+                    ]));
                 }
-                $q = implode(" ", array_filter([
-                    "INSERT INTO",
-                    implode("", $this->tables),
-                    "SET",
-                    implode(", ", $this->set)
-                ]));
                 break;
             case "DELETE":
                 $q = implode(" ", array_filter([
@@ -641,14 +648,19 @@ class QueryBuilder
                 break;
             case "INSERT":
                 if (sizeof($this->set) == 0) {
-                    throw new \Exception("Cannot build an insert without values");
+                    $q = implode(" ", [
+                        "INSERT INTO",
+                        implode("", $this->tables),
+                        "VALUES ()"
+                    ]);
+                }else{
+                    $q = implode(" ", [
+                        "INSERT INTO",
+                        implode("", $this->tables),
+                        "SET",
+                        implode(", ", $this->set)
+                    ]);
                 }
-                $q = implode(" ", [
-                    "INSERT INTO",
-                    implode("", $this->tables),
-                    "SET",
-                    implode(", ", $this->set)
-                ]);
                 break;
             case "DELETE":
                 $q = implode(" ", [
