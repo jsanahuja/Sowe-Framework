@@ -56,48 +56,33 @@ class Query
         return $this->result->fetch_all(MYSQLI_ASSOC);
     }
 
-    public function formattedFetchAll($main_table, $key)
+    public function formattedFetchAll()
     {
-        $groups = [];
-        $fields = [];
-        $f = $this->result->fetch_fields();
-        foreach ($f as $field) {
-            if ($field->orgtable != $main_table) {
-                $fields[$field->orgname] = $field->orgtable;
-                $groups[$field->orgtable] = true;
-            } else {
-                $fields[$field->orgname] = false;
-            }
-        }
-        $groups = array_keys($groups);
-        
-        $data = [];
-        foreach ($this->fetchAll() as $entity) {
-            $obj = [];
-            foreach ($entity as $field => $value) {
-                if ($fields[$field] === false) {
-                    $obj[$field] = $value;
-                } else {
-                    if (!isset($obj[$fields[$field]])) {
-                        $obj[$fields[$field]] = [[]];
+        $fields = $this->result->fetch_fields();
+        $entities = [];
+        foreach ($this->result->fetch_all(MYSQLI_NUM) as $e) {
+            $entity = [];
+            // Iterating over values
+            foreach($e as $key => $value){
+                $field = $fields[$key];
+                // If this field name is taken lets not override it.
+                if(isset($entity[$field->name])){
+                    if($field->table != ""){
+                        // Trying to set table_alias.field_name
+                        $entity[$field->table . "." . $field->name] = $value;
+                    }else{
+                        // Setting table_name.field_name
+                        $entity[$field->orgtable . "." . $field->name] = $value;
                     }
-                    $obj[$fields[$field]][0][$field] = $value;
+                }else{
+                    // Field is not set, lets use its name
+                    $entity[$field->name] = $value;
                 }
             }
-            if (!isset($data[$obj[$key]])) {
-                foreach ($groups as $g) {
-                    if (!array_filter(array_values($obj[$g][0]))) {
-                        unset($obj[$g][0]);
-                    }
-                }
-                $data[$obj[$key]] = $obj;
-            } else {
-                foreach ($groups as $g) {
-                    $data[$obj[$key]][$g][] = $obj[$g][0];
-                }
-            }
+            // Using first field as key
+            $entities[$e[0]] = $entity;
         }
-        return $data;
+        return $entities;
     }
 
     public function formattedJoinFetchAll($main_table, $joinkey, $primarykey){

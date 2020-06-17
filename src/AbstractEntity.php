@@ -120,6 +120,6 @@ abstract class AbstractEntity
         return $this->database
             ->delete(static::$table)
             ->condition(static::$key, "=", $id)
-            ->run()->num_rows();
+            ->run()->num_rows() != 0;
     }
 }
