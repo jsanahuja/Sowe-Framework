@@ -1,7 +1,7 @@
 {
     "name": "sowe/framework",
     "description": "A light and simple DB query framework in native PHP 7",
-    "version": "1.5.3",
+    "version": "1.5.4",
     "authors": [
         {
             "name": "jsanahuja",
@@ -9,11 +9,13 @@
         }
     ],
     "require": {
-        "php": "^7.1",
-        "ext-mysqli": "^7.1",
-        "ext-mbstring": "^7.1",
+        "php": ">=7.1",
         "phpmailer/phpmailer": "^6.1",
         "monolog/monolog": "^2.0"
+    },
+    "suggest": {
+        "ext-mbstring": "Required for Keychain class",
+        "ext-mysqli": "Required for Database and Query classes"
     },
     "autoload":{
         "psr-4":{
